@@ -7,12 +7,16 @@ per-character on top of this base model from server/models/).
 """
 
 import json
+import os
 import re
 import threading
 
 from .characters import build_system_prompt
 
-MODEL_NAME = "Qwen/Qwen2.5-14B-Instruct"  # see plan: LLM Model Shortlist
+# Overridable so the Colab dev-tunnel smoke test (dev/colab_backend_test.ipynb)
+# can point at a small/fast model instead of downloading the full 14B weights
+# on a free-tier GPU box — production (Cloud Run) keeps the real default.
+MODEL_NAME = os.environ.get("LLM_MODEL_NAME", "Qwen/Qwen2.5-14B-Instruct")  # see plan: LLM Model Shortlist
 
 _model = None
 _tokenizer = None

@@ -8,13 +8,19 @@ speaker clip under server/app/voices/<voiceId>.wav that XTTS clones from —
 source/record these per character during Phase 1 step 7.
 """
 
-import io
+import os
+import tempfile
 import threading
 
 _model = None
 _lock = threading.Lock()
 
 VOICE_REFERENCE_DIR = "app/voices"
+
+# XTTS ships built-in preset speakers usable via `speaker=` with no reference
+# clip. Falls back to this until real per-character reference wavs are
+# sourced (still an open item — see plan) so the pipeline is testable now.
+FALLBACK_PRESET_SPEAKER = "Claribel Dervla"
 
 
 def _ensure_loaded():
@@ -33,12 +39,13 @@ def synthesize(text: str, voice_id: str) -> bytes:
     _ensure_loaded()
     reference_wav = f"{VOICE_REFERENCE_DIR}/{voice_id}.wav"
 
-    buffer = io.BytesIO()
-    _model.tts_to_file(
-        text=text,
-        speaker_wav=reference_wav,
-        language="en",
-        file_path=buffer,
-    )
-    buffer.seek(0)
-    return buffer.read()
+    # Coqui's tts_to_file writes to a real path on disk, not a file-like
+    # object, hence the temp file round-trip rather than an in-memory buffer.
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = os.path.join(tmp_dir, "out.wav")
+        if os.path.exists(reference_wav):
+            _model.tts_to_file(text=text, speaker_wav=reference_wav, language="en", file_path=tmp_path)
+        else:
+            _model.tts_to_file(text=text, speaker=FALLBACK_PRESET_SPEAKER, language="en", file_path=tmp_path)
+        with open(tmp_path, "rb") as f:
+            return f.read()

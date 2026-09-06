@@ -5,10 +5,15 @@ browser's Web Speech API if this endpoint is unreachable (see plan: STT).
 """
 
 import io
+import os
 import threading
 
 _model = None
 _lock = threading.Lock()
+
+# Overridable for the Colab dev-tunnel smoke test — a smaller Whisper size
+# downloads/loads much faster on a free-tier box. Production keeps "medium".
+WHISPER_MODEL_SIZE = os.environ.get("WHISPER_MODEL_SIZE", "medium")
 
 # Biases transcription toward expected casual/flirty phrasing rather than
 # assuming formal English (see plan: Language Style & Slang Handling).
@@ -24,7 +29,7 @@ def _ensure_loaded():
             return
         from faster_whisper import WhisperModel
 
-        _model = WhisperModel("medium", device="cuda", compute_type="float16")
+        _model = WhisperModel(WHISPER_MODEL_SIZE, device="cuda", compute_type="float16")
 
 
 def transcribe(audio_bytes: bytes) -> str:
