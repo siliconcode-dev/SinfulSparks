@@ -16,13 +16,16 @@ from .rate_limit import check_rate_limit
 
 app = FastAPI(title="dating-sim-backend")
 
-# Locked to the production Vercel domain (see plan: CORS policy). Set
-# ALLOWED_ORIGIN in the Cloud Run service's env vars; falls back to permissive
+# Locked to the production Vercel domain(s) (see plan: CORS policy). Set
+# ALLOWED_ORIGINS (comma-separated) in the Cloud Run service's env vars —
+# Vercel assigns a project multiple valid aliases (short domain, org-scoped
+# domain, git-branch domain), all pointing at the same deployment, so more
+# than one origin legitimately needs to be allowed. Falls back to permissive
 # for local dev only.
-ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*")
+ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[ALLOWED_ORIGIN],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -9,7 +9,7 @@ PROJECT_ID="${GCP_PROJECT_ID:?Set GCP_PROJECT_ID}"
 REGION="us-central1"
 REPO="dating-sim-repo"
 IMAGE="us-central1-docker.pkg.dev/${PROJECT_ID}/${REPO}/backend:latest"
-ALLOWED_ORIGIN="${ALLOWED_ORIGIN:?Set ALLOWED_ORIGIN to your Vercel production URL}"
+ALLOWED_ORIGINS="${ALLOWED_ORIGINS:?Set ALLOWED_ORIGINS to your Vercel production URL(s), comma-separated}"
 
 gcloud config set project "$PROJECT_ID"
 
@@ -27,7 +27,7 @@ gcloud run deploy dating-sim-backend \
   --min-instances 0 --max-instances 3 \
   --timeout 60 \
   --allow-unauthenticated \
-  --set-env-vars "ALLOWED_ORIGIN=${ALLOWED_ORIGIN},SUPABASE_URL=${SUPABASE_URL:?Set SUPABASE_URL},SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:?Set SUPABASE_SERVICE_ROLE_KEY},GROQ_API_KEY=${GROQ_API_KEY:?Set GROQ_API_KEY},GROQ_API_KEY_FALLBACK=${GROQ_API_KEY_FALLBACK:-}"
+  --set-env-vars "ALLOWED_ORIGINS=${ALLOWED_ORIGINS},SUPABASE_URL=${SUPABASE_URL:?Set SUPABASE_URL},SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:?Set SUPABASE_SERVICE_ROLE_KEY},GROQ_API_KEY=${GROQ_API_KEY:?Set GROQ_API_KEY},GROQ_API_KEY_FALLBACK=${GROQ_API_KEY_FALLBACK:-}"
 
 echo "Deployed. Service URL:"
 gcloud run services describe dating-sim-backend --region "$REGION" --format='value(status.url)'
