@@ -8,7 +8,7 @@ const meterFill = document.getElementById('interest-meter-fill');
 const transcriptEl = document.getElementById('transcript-line');
 const herLineEl = document.getElementById('her-line');
 const micBtn = document.getElementById('mic-btn');
-const micModeToggle = document.getElementById('mic-mode-toggle');
+const micStatus = document.getElementById('mic-status');
 const statsBtn = document.getElementById('stats-btn');
 const statsPanel = document.getElementById('stats-panel');
 const statsList = document.getElementById('stats-list');
@@ -39,23 +39,18 @@ export function setHerLine(text) {
 
 export function setMicListening(isListening) {
   micBtn.classList.toggle('listening', isListening);
+  micBtn.textContent = isListening ? 'Tap to stop' : 'Tap to talk';
 }
 
-export function onMicButton(handler) {
-  micBtn.addEventListener('mousedown', () => handler('down'));
-  micBtn.addEventListener('mouseup', () => handler('up'));
-  micBtn.addEventListener('touchstart', (e) => { e.preventDefault(); handler('down'); });
-  micBtn.addEventListener('touchend', (e) => { e.preventDefault(); handler('up'); });
+export function setMicStatus(text) {
+  micStatus.textContent = text;
 }
 
-let toggleMode = false;
-export function onMicModeToggle(handler) {
-  micModeToggle.addEventListener('click', () => {
-    toggleMode = !toggleMode;
-    micModeToggle.textContent = toggleMode ? 'switch to push-to-talk' : 'switch to toggle mode';
-    micBtn.textContent = toggleMode ? 'Tap to talk' : 'Hold to talk';
-    handler(toggleMode);
-  });
+// Tap-to-start, auto-stop-on-silence (see audio/stt.js) — one tap begins
+// recording, a second tap while recording force-stops early as a fallback.
+// No press-and-hold on desktop or mobile.
+export function onMicTap(handler) {
+  micBtn.addEventListener('click', handler);
 }
 
 export function initStatsPanel() {

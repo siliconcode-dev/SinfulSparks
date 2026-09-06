@@ -5,7 +5,7 @@ import { spawnNPCs, findNearbyNPC } from './world/npcs.js';
 import * as ui from './dialogue/conversationUI.js';
 import { getProgress, saveProgress, applyInterestDelta } from './dialogue/conversationState.js';
 import { sendMessage } from './dialogue/dialogueEngine.js';
-import { startRecording, stopRecording, transcribe } from './audio/stt.js';
+import { startAutoStopRecording, forceStopRecording, isRecording, transcribe } from './audio/stt.js';
 import { speak } from './audio/tts.js';
 import { BACKEND_URL, KISS_THRESHOLD, REJECTION_THRESHOLD } from './config.js';
 
@@ -13,9 +13,9 @@ const loadingScreen = document.getElementById('loading-screen');
 const loadingStatus = document.getElementById('loading-status');
 
 async function waitForBackend() {
-  // Cold-start UX: Cloud Run + GPU can take 30-90s to warm up from zero
-  // instances (see plan: Cold start UX). Poll a lightweight health endpoint
-  // until it responds, rather than failing the first real request.
+  // Cold-start UX: Cloud Run can take a little while to warm up from zero
+  // instances. Poll a lightweight health endpoint until it responds, rather
+  // than failing the first real request.
   const maxAttempts = 30;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
@@ -26,7 +26,7 @@ async function waitForBackend() {
     }
     loadingStatus.textContent = attempt < 3
       ? 'Connecting to backend'
-      : 'Waking up the GPU backend (this can take up to a minute)…';
+      : 'Waking up the backend (this can take a little while on a cold start)…';
     await new Promise((r) => setTimeout(r, 2000));
   }
   loadingStatus.textContent = 'Backend unreachable — starting in offline/fallback mode.';
@@ -43,19 +43,10 @@ async function main() {
   ui.initStatsPanel();
 
   let activeNPC = null;
-  let micToggleMode = false;
-  let isRecording = false;
   let inFlight = false;
 
-  ui.onMicModeToggle((toggleMode) => { micToggleMode = toggleMode; });
-
-  async function handleMicUp() {
-    if (!activeNPC || inFlight) return;
-    isRecording = false;
-    ui.setMicListening(false);
-    const blob = await stopRecording();
-    if (!blob) return;
-
+  async function processRecording(blob) {
+    if (!blob || !activeNPC) return;
     inFlight = true;
     try {
       const authToken = null; // wired once Supabase auth is in place (Phase 1 step 3)
@@ -104,26 +95,22 @@ async function main() {
     }
   }
 
-  ui.onMicButton(async (action) => {
+  ui.onMicTap(async () => {
     if (!activeNPC || inFlight) return;
-    if (micToggleMode) {
-      if (action !== 'down') return;
-      if (!isRecording) {
-        isRecording = true;
-        ui.setMicListening(true);
-        await startRecording();
-      } else {
-        await handleMicUp();
-      }
+    if (isRecording()) {
+      // Fallback: a second tap force-stops early if silence detection
+      // doesn't fire (e.g. persistent background noise).
+      forceStopRecording();
       return;
     }
-    if (action === 'down' && !isRecording) {
-      isRecording = true;
-      ui.setMicListening(true);
-      await startRecording();
-    } else if (action === 'up' && isRecording) {
-      await handleMicUp();
-    }
+    ui.setMicListening(true);
+    ui.setMicStatus('Listening for you to start talking…');
+    const blob = await startAutoStopRecording({
+      onSpeechDetected: () => ui.setMicStatus('Listening…'),
+    });
+    ui.setMicListening(false);
+    ui.setMicStatus('');
+    await processRecording(blob);
   });
 
   function openConversationWith(npc) {
