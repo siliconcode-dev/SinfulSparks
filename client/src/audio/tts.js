@@ -45,9 +45,30 @@ async function speakViaBackend(text, voiceId, authToken, onMouthAmplitude) {
   });
 }
 
-function speakViaBrowser(text, onMouthAmplitude) {
+// Voices load asynchronously in some browsers — getVoices() can return an
+// empty list on the very first call until 'voiceschanged' fires.
+function getVoicesAsync() {
+  return new Promise((resolve) => {
+    const voices = speechSynthesis.getVoices();
+    if (voices.length) return resolve(voices);
+    speechSynthesis.onvoiceschanged = () => resolve(speechSynthesis.getVoices());
+  });
+}
+
+// All characters are female — the OS/browser default voice is frequently
+// male (e.g. Windows' default is often "David"), and this fallback firing
+// silently swaps a character's voice with no indication to the player. Web
+// Speech API has no formal gender field, so this is a best-effort name
+// match against common female voice names across platforms.
+const FEMALE_VOICE_HINT = /female|zira|samantha|susan|karen|victoria|moira|tessa|fiona|salli|joanna|kimberly|ivy|aria|jenny/i;
+
+async function speakViaBrowser(text, onMouthAmplitude) {
+  const voices = await getVoicesAsync();
+  const femaleVoice = voices.find((v) => FEMALE_VOICE_HINT.test(v.name));
+
   return new Promise((resolve) => {
     const utterance = new SpeechSynthesisUtterance(text);
+    if (femaleVoice) utterance.voice = femaleVoice;
     // Crude amplitude approximation for lip-sync fallback: pulse while speaking.
     const pulse = setInterval(() => onMouthAmplitude?.(Math.random() * 0.6 + 0.2), 90);
     utterance.onend = () => {
@@ -59,11 +80,16 @@ function speakViaBrowser(text, onMouthAmplitude) {
   });
 }
 
+// Returns { usedFallback } so callers can surface it — this failing over is
+// silent by default, and a character's voice suddenly changing with no
+// explanation is confusing (see plan: Fixes Found in Live Testing).
 export async function speak(text, voiceId, authToken, onMouthAmplitude) {
   try {
     await speakViaBackend(text, voiceId, authToken, onMouthAmplitude);
+    return { usedFallback: false };
   } catch (err) {
     console.warn('Backend TTS failed, falling back to browser SpeechSynthesis', err);
     await speakViaBrowser(text, onMouthAmplitude);
+    return { usedFallback: true };
   }
 }

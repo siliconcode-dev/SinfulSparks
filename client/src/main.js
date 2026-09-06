@@ -76,8 +76,11 @@ async function main() {
       ui.setHerLine(result.reply);
 
       setNPCAction(npc, 'Idle_Talking_Loop');
-      await speak(result.reply, character.voiceId, authToken);
+      const { usedFallback } = await speak(result.reply, character.voiceId, authToken);
       setNPCAction(npc, 'Idle_Loop');
+      if (usedFallback) {
+        ui.setMicStatus('(voice service busy — using a backup voice for this line)');
+      }
 
       if (nextProgress.rejected || result.endConversation) {
         ui.setHerLine(`${character.name} walks off.`);
