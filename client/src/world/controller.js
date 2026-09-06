@@ -35,7 +35,7 @@ export function createPlayerController(camera, domElement) {
     camera.rotation.x = pitch;
 
     forward.set(Math.sin(yaw), 0, Math.cos(yaw)).negate();
-    right.set(forward.z, 0, -forward.x);
+    right.set(-forward.z, 0, forward.x);
 
     const move = new THREE.Vector3();
     if (keys.has('KeyW')) move.add(forward);
