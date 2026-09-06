@@ -1,16 +1,18 @@
 import * as THREE from 'three';
 import { createScene } from './world/scene.js';
 import { createPlayerController } from './world/controller.js';
-import { spawnNPCs, findNearbyNPC } from './world/npcs.js';
+import { spawnNPCs, updateNPCs, findNearbyNPC, setNPCAction } from './world/npcs.js';
 import * as ui from './dialogue/conversationUI.js';
 import { getProgress, saveProgress, applyInterestDelta } from './dialogue/conversationState.js';
 import { sendMessage } from './dialogue/dialogueEngine.js';
 import { startAutoStopRecording, forceStopRecording, isRecording, transcribe } from './audio/stt.js';
 import { speak } from './audio/tts.js';
-import { BACKEND_URL, KISS_THRESHOLD, REJECTION_THRESHOLD } from './config.js';
+import { playKissSound, playSlapSound } from './audio/sfx.js';
+import { BACKEND_URL } from './config.js';
 
 const loadingScreen = document.getElementById('loading-screen');
 const loadingStatus = document.getElementById('loading-status');
+const fadeOverlay = document.getElementById('fade-overlay');
 
 async function waitForBackend() {
   // Cold-start UX: Cloud Run can take a little while to warm up from zero
@@ -35,25 +37,28 @@ async function waitForBackend() {
 
 async function main() {
   await waitForBackend();
-  loadingScreen.classList.add('hidden');
 
   const { scene, camera, renderer, updateDayNightCycle } = createScene();
   const controller = createPlayerController(camera, renderer.domElement);
-  const npcs = spawnNPCs(scene);
+  const npcs = await spawnNPCs(scene);
   ui.initStatsPanel();
+
+  loadingScreen.classList.add('hidden');
 
   let activeNPC = null;
   let inFlight = false;
+  let cutscene = null; // see startCutscene() — camera move + fade, blocks player input while active
 
   async function processRecording(blob) {
     if (!blob || !activeNPC) return;
     inFlight = true;
     try {
-      const authToken = null; // wired once Supabase auth is in place (Phase 1 step 3)
+      const authToken = null; // wired once Supabase auth is in place (Phase 2)
       const transcript = await transcribe(blob, authToken);
       ui.setTranscript(`You: ${transcript}`);
 
-      const character = activeNPC.character;
+      const npc = activeNPC;
+      const character = npc.character;
       const progress = getProgress(character.id);
       const history = progress.history.slice(-10);
 
@@ -70,18 +75,16 @@ async function main() {
       ui.setInterestMeter(nextProgress.interest);
       ui.setHerLine(result.reply);
 
-      await speak(result.reply, character.voiceId, authToken, (amp) => {
-        activeNPC.mesh.children[1].scale.setScalar(1 + amp * 0.15); // crude jaw-movement stand-in
-      });
+      setNPCAction(npc, 'Idle_Talking_Loop');
+      await speak(result.reply, character.voiceId, authToken);
+      setNPCAction(npc, 'Idle_Loop');
 
       if (nextProgress.rejected || result.endConversation) {
         ui.setHerLine(`${character.name} walks off.`);
-        setTimeout(() => closeConversation(), 1800);
+        startCutscene(npc, 'rejection');
       } else if (nextProgress.kissed) {
         ui.setHerLine(`${character.name} leans in for a kiss.`);
-        // Phase 1 step 8: replace with the real scripted kiss cutscene
-        // (camera cut + animation + fade + kiss sound), not generated content.
-        setTimeout(() => closeConversation(), 2500);
+        startCutscene(npc, 'kiss');
       }
     } catch (err) {
       if (err.message === 'rate_limited') {
@@ -96,7 +99,7 @@ async function main() {
   }
 
   ui.onMicTap(async () => {
-    if (!activeNPC || inFlight) return;
+    if (!activeNPC || inFlight || cutscene) return;
     if (isRecording()) {
       // Fallback: a second tap force-stops early if silence detection
       // doesn't fire (e.g. persistent background noise).
@@ -125,15 +128,81 @@ async function main() {
     ui.closeConversation();
   }
 
+  // Simple scripted scene: camera dollies toward the character, plays a
+  // sound + (for rejection) a walk-off animation, then fades to black and
+  // ends the conversation — not a literal custom kiss/slap animation (none
+  // exists in the free asset library), camera + audio work instead (see
+  // plan: Phase 1, Cutscenes).
+  function startCutscene(npc, kind) {
+    const duration = kind === 'kiss' ? 1.6 : 1.3;
+    const startPos = camera.position.clone();
+    const startQuat = camera.quaternion.clone();
+
+    const toChar = new THREE.Vector3().subVectors(npc.mesh.position, startPos);
+    toChar.y = 0;
+    toChar.normalize();
+    const targetPos = npc.mesh.position.clone().add(toChar.clone().multiplyScalar(-1.1));
+    targetPos.y = 1.6;
+    const lookTarget = npc.mesh.position.clone();
+    lookTarget.y = 1.5;
+    const lookMatrix = new THREE.Matrix4().lookAt(targetPos, lookTarget, camera.up);
+    const targetQuat = new THREE.Quaternion().setFromRotationMatrix(lookMatrix);
+
+    const walkAway = kind === 'rejection'
+      ? npc.mesh.position.clone().add(toChar.clone().multiplyScalar(3))
+      : null;
+    const walkStart = npc.mesh.position.clone();
+
+    if (kind === 'kiss') {
+      playKissSound();
+    } else {
+      playSlapSound();
+      setNPCAction(npc, 'Hit_Head', { loop: THREE.LoopOnce });
+      setTimeout(() => setNPCAction(npc, 'Walk_Loop'), 400);
+    }
+
+    cutscene = { npc, kind, elapsed: 0, duration, startPos, startQuat, targetPos, targetQuat, walkAway, walkStart, fadeStarted: false };
+  }
+
+  function updateCutscene(dt) {
+    if (!cutscene) return;
+    cutscene.elapsed += dt;
+    const t = Math.min(cutscene.elapsed / cutscene.duration, 1);
+    const eased = t * t * (3 - 2 * t); // smoothstep
+
+    camera.position.lerpVectors(cutscene.startPos, cutscene.targetPos, eased);
+    camera.quaternion.slerpQuaternions(cutscene.startQuat, cutscene.targetQuat, eased);
+
+    if (cutscene.walkAway) {
+      cutscene.npc.mesh.position.lerpVectors(cutscene.walkStart, cutscene.walkAway, eased);
+    }
+
+    if (t >= 1 && !cutscene.fadeStarted) {
+      cutscene.fadeStarted = true;
+      fadeOverlay.classList.add('active');
+      setTimeout(() => {
+        fadeOverlay.classList.remove('active');
+        setNPCAction(cutscene.npc, 'Idle_Loop');
+        cutscene = null;
+        closeConversation();
+      }, 900);
+    }
+  }
+
   const clock = new THREE.Clock();
   function tick() {
     const dt = Math.min(clock.getDelta(), 0.1);
-    controller.update(dt);
+    updateNPCs(npcs, dt);
     updateDayNightCycle(dt);
 
-    if (!activeNPC) {
-      const nearby = findNearbyNPC(npcs, camera.position);
-      if (nearby) openConversationWith(nearby);
+    if (cutscene) {
+      updateCutscene(dt);
+    } else {
+      controller.update(dt);
+      if (!activeNPC) {
+        const nearby = findNearbyNPC(npcs, camera.position);
+        if (nearby) openConversationWith(nearby);
+      }
     }
 
     renderer.render(scene, camera);

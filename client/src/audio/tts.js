@@ -1,8 +1,8 @@
 import { BACKEND_URL } from '../config.js';
 
-// Primary path: self-hosted TTS on the Cloud Run GPU backend, returning a
-// distinct voice per character (voiceId). Falls back to the browser's
-// SpeechSynthesis if the backend call fails — see plan: TTS.
+// Primary path: the backend's Groq-hosted TTS, returning a distinct voice
+// per character (voiceId). Falls back to the browser's SpeechSynthesis if
+// the backend call fails — see plan: TTS.
 async function speakViaBackend(text, voiceId, authToken, onMouthAmplitude) {
   const res = await fetch(`${BACKEND_URL}/api/tts`, {
     method: 'POST',
