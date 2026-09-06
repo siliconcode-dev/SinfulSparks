@@ -52,7 +52,11 @@ def generate_reply(character_id: str, history: list[dict], message: str) -> dict
         "POST",
         GROQ_CHAT_URL,
         headers={"Content-Type": "application/json"},
-        json={"model": MODEL_NAME, "messages": messages, "temperature": 0.8, "max_tokens": 220},
+        # Capped short on purpose (see characters.py's system prompt): real
+        # spoken conversation doesn't run to paragraphs, and a hard token
+        # limit backs up the "keep it short" instruction structurally rather
+        # than trusting the model to self-limit.
+        json={"model": MODEL_NAME, "messages": messages, "temperature": 0.9, "max_tokens": 110},
         timeout=30,
     )
     response.raise_for_status()
