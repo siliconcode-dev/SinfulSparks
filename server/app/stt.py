@@ -6,9 +6,8 @@ back to the browser's Web Speech API if this is unreachable (see plan: STT).
 
 import os
 
-import requests
+from . import groq_client
 
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GROQ_TRANSCRIPTION_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
 
 # whisper-large-v3-turbo is fast and accurate; distil-whisper-large-v3-en is
@@ -22,9 +21,9 @@ INITIAL_PROMPT = "Casual conversational speech, flirting, dating small talk."
 
 
 def transcribe(audio_bytes: bytes) -> str:
-    response = requests.post(
+    response = groq_client.request(
+        "POST",
         GROQ_TRANSCRIPTION_URL,
-        headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
         files={"file": ("speech.webm", audio_bytes, "audio/webm")},
         data={"model": MODEL_NAME, "language": "en", "prompt": INITIAL_PROMPT},
         timeout=30,

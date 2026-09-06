@@ -13,11 +13,9 @@ import json
 import os
 import re
 
-import requests
-
+from . import groq_client
 from .characters import build_system_prompt
 
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 # Groq's model catalog changes fairly often — llama-3.1-8b-instant (the
@@ -50,9 +48,10 @@ def generate_reply(character_id: str, history: list[dict], message: str) -> dict
         messages.append({"role": role, "content": turn["text"]})
     messages.append({"role": "user", "content": message})
 
-    response = requests.post(
+    response = groq_client.request(
+        "POST",
         GROQ_CHAT_URL,
-        headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+        headers={"Content-Type": "application/json"},
         json={"model": MODEL_NAME, "messages": messages, "temperature": 0.8, "max_tokens": 220},
         timeout=30,
     )

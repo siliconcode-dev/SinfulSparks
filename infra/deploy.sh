@@ -27,7 +27,7 @@ gcloud run deploy dating-sim-backend \
   --min-instances 0 --max-instances 3 \
   --timeout 60 \
   --allow-unauthenticated \
-  --set-env-vars "ALLOWED_ORIGIN=${ALLOWED_ORIGIN},SUPABASE_URL=${SUPABASE_URL:?Set SUPABASE_URL},SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:?Set SUPABASE_SERVICE_ROLE_KEY},GROQ_API_KEY=${GROQ_API_KEY:?Set GROQ_API_KEY}"
+  --set-env-vars "ALLOWED_ORIGIN=${ALLOWED_ORIGIN},SUPABASE_URL=${SUPABASE_URL:?Set SUPABASE_URL},SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:?Set SUPABASE_SERVICE_ROLE_KEY},GROQ_API_KEY=${GROQ_API_KEY:?Set GROQ_API_KEY},GROQ_API_KEY_FALLBACK=${GROQ_API_KEY_FALLBACK:-}"
 
 echo "Deployed. Service URL:"
 gcloud run services describe dating-sim-backend --region "$REGION" --format='value(status.url)'

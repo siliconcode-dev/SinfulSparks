@@ -17,13 +17,11 @@ concatenated into one.
 """
 
 import io
-import os
 import re
 import wave
 
-import requests
+from . import groq_client
 
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GROQ_SPEECH_URL = "https://api.groq.com/openai/v1/audio/speech"
 MODEL_NAME = "canopylabs/orpheus-v1-english"
 MAX_CHUNK_CHARS = 190  # a little under the API's 200-char cap for safety
@@ -47,9 +45,10 @@ def _chunk_text(text: str, max_len: int = MAX_CHUNK_CHARS) -> list[str]:
 
 
 def _synthesize_chunk(text: str, voice: str) -> bytes:
-    response = requests.post(
+    response = groq_client.request(
+        "POST",
         GROQ_SPEECH_URL,
-        headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+        headers={"Content-Type": "application/json"},
         json={"model": MODEL_NAME, "input": text, "voice": voice, "response_format": "wav"},
         timeout=30,
     )
