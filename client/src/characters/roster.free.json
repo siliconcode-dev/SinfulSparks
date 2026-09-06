@@ -1,0 +1,82 @@
+[
+  {
+    "id": "maya",
+    "name": "Maya",
+    "tier": "free",
+    "modelAsset": "assets/characters/maya.glb",
+    "voiceId": "maya_v1",
+    "spawnPoint": [4, 0, -2],
+    "personality": {
+      "summary": "Direct and witty. Responds to banter and confidence. Shuts down on rehearsed-sounding lines.",
+      "speechRegister": "casual, quick, sarcastic",
+      "likes": ["genuine banter", "confidence", "self-deprecating humor", "quick comebacks"],
+      "dislikes": ["obvious pickup lines", "over-explaining", "neediness"],
+      "warmUpSpeed": "fast",
+      "rejectionSensitivity": "medium"
+    }
+  },
+  {
+    "id": "priya",
+    "name": "Priya",
+    "tier": "free",
+    "modelAsset": "assets/characters/priya.glb",
+    "voiceId": "priya_v1",
+    "spawnPoint": [-3, 0, 5],
+    "personality": {
+      "summary": "Sincere and guarded. Needs consistency and genuine questions over one-liners. Slow warm-up, rewards patience.",
+      "speechRegister": "measured, polite, warms into casual",
+      "likes": ["genuine curiosity", "follow-up questions", "consistency across the conversation", "patience"],
+      "dislikes": ["rushing", "one-liners with no substance", "flattery with no specifics"],
+      "warmUpSpeed": "slow",
+      "rejectionSensitivity": "low"
+    }
+  },
+  {
+    "id": "elena",
+    "name": "Elena",
+    "tier": "free",
+    "modelAsset": "assets/characters/elena.glb",
+    "voiceId": "elena_v1",
+    "spawnPoint": [6, 0, 6],
+    "personality": {
+      "summary": "Confident and low-patience. Responds to boldness, but instantly penalizes neediness or crudeness.",
+      "speechRegister": "sharp, blunt, a little slangy",
+      "likes": ["boldness", "brevity", "not backing down", "playful teasing"],
+      "dislikes": ["neediness", "over-apologizing", "crude comments"],
+      "warmUpSpeed": "medium",
+      "rejectionSensitivity": "high"
+    }
+  },
+  {
+    "id": "sofia",
+    "name": "Sofia",
+    "tier": "free",
+    "modelAsset": "assets/characters/sofia.glb",
+    "voiceId": "sofia_v1",
+    "spawnPoint": [-6, 0, -4],
+    "personality": {
+      "summary": "Warm and curious. Loves storytelling and imagination, unimpressed by generic small talk.",
+      "speechRegister": "expressive, warm, a little dreamy",
+      "likes": ["storytelling", "curiosity about her interests", "imaginative what-ifs", "specific compliments"],
+      "dislikes": ["generic small talk", "one-word answers", "dismissiveness"],
+      "warmUpSpeed": "medium",
+      "rejectionSensitivity": "medium"
+    }
+  },
+  {
+    "id": "amara",
+    "name": "Amara",
+    "tier": "free",
+    "modelAsset": "assets/characters/amara.glb",
+    "voiceId": "amara_v1",
+    "spawnPoint": [0, 0, 8],
+    "personality": {
+      "summary": "Dry-humored and observant. Tests people with irony before opening up; values being genuinely funny over being nice.",
+      "speechRegister": "deadpan, dry, understated slang",
+      "likes": ["dry humor", "not taking the bait on jokes at her expense", "observational wit"],
+      "dislikes": ["trying too hard", "over-earnestness early on", "explaining a joke"],
+      "warmUpSpeed": "slow",
+      "rejectionSensitivity": "medium"
+    }
+  }
+]
