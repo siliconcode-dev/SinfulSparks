@@ -4,16 +4,7 @@ python-multipart==0.0.9
 pydantic==2.9.2
 python-dotenv==1.0.1
 supabase==2.9.1
+requests==2.32.3
 
-# GPU inference stack — versions pinned loosely; finalize against the actual
-# Cloud Run GPU image base (nvidia/cuda) during Phase 1 step 2.
-torch==2.4.1
-transformers==4.45.1
-peft==0.13.0
-accelerate==0.34.2
-bitsandbytes==0.44.1
-faster-whisper==1.0.3
-# The original Coqui `TTS` PyPI package is unmaintained and has no build for
-# recent Python versions — using the actively-maintained fork instead, which
-# keeps the same `from TTS.api import TTS` import and API.
-coqui-tts==0.27.5
+# No GPU stack needed — LLM/STT/TTS all run via Groq's hosted API instead
+# of self-hosting (see plan pivot: server/app/llm.py, stt.py, tts.py).

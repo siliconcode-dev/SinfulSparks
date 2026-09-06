@@ -4,7 +4,7 @@
     "name": "Maya",
     "tier": "free",
     "modelAsset": "assets/characters/maya.glb",
-    "voiceId": "maya_v1",
+    "voiceId": "hannah",
     "spawnPoint": [4, 0, -2],
     "personality": {
       "summary": "Direct and witty. Responds to banter and confidence. Shuts down on rehearsed-sounding lines.",
@@ -20,7 +20,7 @@
     "name": "Priya",
     "tier": "free",
     "modelAsset": "assets/characters/priya.glb",
-    "voiceId": "priya_v1",
+    "voiceId": "autumn",
     "spawnPoint": [-3, 0, 5],
     "personality": {
       "summary": "Sincere and guarded. Needs consistency and genuine questions over one-liners. Slow warm-up, rewards patience.",
@@ -36,7 +36,7 @@
     "name": "Elena",
     "tier": "free",
     "modelAsset": "assets/characters/elena.glb",
-    "voiceId": "elena_v1",
+    "voiceId": "diana",
     "spawnPoint": [6, 0, 6],
     "personality": {
       "summary": "Confident and low-patience. Responds to boldness, but instantly penalizes neediness or crudeness.",
@@ -52,7 +52,7 @@
     "name": "Sofia",
     "tier": "free",
     "modelAsset": "assets/characters/sofia.glb",
-    "voiceId": "sofia_v1",
+    "voiceId": "autumn",
     "spawnPoint": [-6, 0, -4],
     "personality": {
       "summary": "Warm and curious. Loves storytelling and imagination, unimpressed by generic small talk.",
@@ -68,7 +68,7 @@
     "name": "Amara",
     "tier": "free",
     "modelAsset": "assets/characters/amara.glb",
-    "voiceId": "amara_v1",
+    "voiceId": "diana",
     "spawnPoint": [0, 0, 8],
     "personality": {
       "summary": "Dry-humored and observant. Tests people with irony before opening up; values being genuinely funny over being nice.",

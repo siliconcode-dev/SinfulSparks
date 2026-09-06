@@ -1,46 +1,31 @@
 """
-LLM inference wrapper. Lazily loads the model on first request so container
-startup (Cloud Run cold start) doesn't pay the load cost until actually
-needed — the client's loading screen covers this wait (see plan: Cold start
-UX). Swap MODEL_NAME / quantization once Phase 2 LoRA adapters exist (loaded
-per-character on top of this base model from server/models/).
+LLM inference via Groq's hosted API (see plan pivot: self-hosting a GPU was
+blocked by GCP's free-trial GPU restriction; Groq's free tier is generous,
+permanent, and needs no GPU quota at all — see conversation for the research
+behind this). No local model loading, no GPU, no cold start.
+
+Trade-off: Groq serves fixed pretrained models — no custom LoRA fine-tuning
+per character. Character personality comes entirely from the system prompt
+(see characters.py), which is genuinely sufficient for an MVP.
 """
 
 import json
 import os
 import re
-import threading
+
+import requests
 
 from .characters import build_system_prompt
 
-# Overridable so the Colab dev-tunnel smoke test (dev/colab_backend_test.ipynb)
-# can point at a small/fast model instead of downloading the full 14B weights
-# on a free-tier GPU box — production (Cloud Run) keeps the real default.
-MODEL_NAME = os.environ.get("LLM_MODEL_NAME", "Qwen/Qwen2.5-14B-Instruct")  # see plan: LLM Model Shortlist
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-_model = None
-_tokenizer = None
-_lock = threading.Lock()
-
-
-def _ensure_loaded():
-    global _model, _tokenizer
-    if _model is not None:
-        return
-    with _lock:
-        if _model is not None:
-            return
-        import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-
-        quant_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16)
-        _tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-        _model = AutoModelForCausalLM.from_pretrained(
-            MODEL_NAME, quantization_config=quant_config, device_map="auto"
-        )
-        # Phase 2: load per-character LoRA adapter here, e.g.
-        # _model = PeftModel.from_pretrained(_model, f"models/{character_id}")
-
+# Groq's model catalog changes fairly often — llama-3.1-8b-instant (the
+# original pick) is no longer served. qwen/qwen3.8-27b gives clean direct
+# replies; openai/gpt-oss-20b was tried and rejected — it's a reasoning
+# model that burns tokens on hidden chain-of-thought and is slower, a bad
+# fit for real-time conversational replies.
+MODEL_NAME = os.environ.get("GROQ_LLM_MODEL", "qwen/qwen3.8-27b")
 
 _JSON_TAIL_PATTERN = re.compile(r"\{[^{}]*\"interest_delta\"[^{}]*\}\s*$")
 
@@ -58,8 +43,6 @@ def _split_reply_and_delta(raw_text: str) -> tuple[str, dict]:
 
 
 def generate_reply(character_id: str, history: list[dict], message: str) -> dict:
-    _ensure_loaded()
-
     system_prompt = build_system_prompt(character_id)
     messages = [{"role": "system", "content": system_prompt}]
     for turn in history:
@@ -67,10 +50,14 @@ def generate_reply(character_id: str, history: list[dict], message: str) -> dict
         messages.append({"role": role, "content": turn["text"]})
     messages.append({"role": "user", "content": message})
 
-    prompt = _tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    inputs = _tokenizer(prompt, return_tensors="pt").to(_model.device)
-    output = _model.generate(**inputs, max_new_tokens=220, do_sample=True, temperature=0.8)
-    raw_text = _tokenizer.decode(output[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+    response = requests.post(
+        GROQ_CHAT_URL,
+        headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+        json={"model": MODEL_NAME, "messages": messages, "temperature": 0.8, "max_tokens": 220},
+        timeout=30,
+    )
+    response.raise_for_status()
+    raw_text = response.json()["choices"][0]["message"]["content"]
 
     reply, parsed = _split_reply_and_delta(raw_text)
     return {

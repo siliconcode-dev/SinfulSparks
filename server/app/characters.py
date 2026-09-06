@@ -16,6 +16,7 @@ CHARACTERS = {
     "maya": {
         "name": "Maya",
         "tier": "free",
+        "voice": "hannah",
         "summary": "Direct and witty. Responds to banter and confidence. Shuts down on rehearsed-sounding lines.",
         "speech_register": "casual, quick, sarcastic",
         "likes": ["genuine banter", "confidence", "self-deprecating humor", "quick comebacks"],
@@ -26,6 +27,7 @@ CHARACTERS = {
     "priya": {
         "name": "Priya",
         "tier": "free",
+        "voice": "autumn",
         "summary": "Sincere and guarded. Needs consistency and genuine questions over one-liners. Slow warm-up, rewards patience.",
         "speech_register": "measured, polite, warms into casual",
         "likes": ["genuine curiosity", "follow-up questions", "consistency across the conversation", "patience"],
@@ -36,6 +38,7 @@ CHARACTERS = {
     "elena": {
         "name": "Elena",
         "tier": "free",
+        "voice": "diana",
         "summary": "Confident and low-patience. Responds to boldness, but instantly penalizes neediness or crudeness.",
         "speech_register": "sharp, blunt, a little slangy",
         "likes": ["boldness", "brevity", "not backing down", "playful teasing"],
@@ -46,6 +49,7 @@ CHARACTERS = {
     "sofia": {
         "name": "Sofia",
         "tier": "free",
+        "voice": "autumn",  # shares with Priya — only 3 female-coded Groq voices exist, see module docstring
         "summary": "Warm and curious. Loves storytelling and imagination, unimpressed by generic small talk.",
         "speech_register": "expressive, warm, a little dreamy",
         "likes": ["storytelling", "curiosity about her interests", "imaginative what-ifs", "specific compliments"],
@@ -56,6 +60,7 @@ CHARACTERS = {
     "amara": {
         "name": "Amara",
         "tier": "free",
+        "voice": "diana",  # shares with Elena — only 3 female-coded Groq voices exist, see module docstring
         "summary": "Dry-humored and observant. Tests people with irony before opening up; values being genuinely funny over being nice.",
         "speech_register": "deadpan, dry, understated slang",
         "likes": ["dry humor", "not taking the bait on jokes at her expense", "observational wit"],

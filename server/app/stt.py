@@ -1,40 +1,33 @@
 """
-Self-hosted Whisper (via faster-whisper) for speech-to-text, running on the
-same Cloud Run GPU service as the LLM/TTS. The client falls back to the
-browser's Web Speech API if this endpoint is unreachable (see plan: STT).
+Speech-to-text via Groq's hosted Whisper API (see plan pivot: replaces the
+self-hosted GPU approach — no GPU needed at all now). Client still falls
+back to the browser's Web Speech API if this is unreachable (see plan: STT).
 """
 
-import io
 import os
-import threading
 
-_model = None
-_lock = threading.Lock()
+import requests
 
-# Overridable for the Colab dev-tunnel smoke test — a smaller Whisper size
-# downloads/loads much faster on a free-tier box. Production keeps "medium".
-WHISPER_MODEL_SIZE = os.environ.get("WHISPER_MODEL_SIZE", "medium")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+GROQ_TRANSCRIPTION_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
+
+# whisper-large-v3-turbo is fast and accurate; distil-whisper-large-v3-en is
+# faster still if English-only latency becomes a concern (see plan: STT is
+# English-only for the MVP).
+MODEL_NAME = os.environ.get("GROQ_STT_MODEL", "whisper-large-v3-turbo")
 
 # Biases transcription toward expected casual/flirty phrasing rather than
 # assuming formal English (see plan: Language Style & Slang Handling).
 INITIAL_PROMPT = "Casual conversational speech, flirting, dating small talk."
 
 
-def _ensure_loaded():
-    global _model
-    if _model is not None:
-        return
-    with _lock:
-        if _model is not None:
-            return
-        from faster_whisper import WhisperModel
-
-        _model = WhisperModel(WHISPER_MODEL_SIZE, device="cuda", compute_type="float16")
-
-
 def transcribe(audio_bytes: bytes) -> str:
-    _ensure_loaded()
-    segments, _info = _model.transcribe(
-        io.BytesIO(audio_bytes), language="en", initial_prompt=INITIAL_PROMPT
+    response = requests.post(
+        GROQ_TRANSCRIPTION_URL,
+        headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+        files={"file": ("speech.webm", audio_bytes, "audio/webm")},
+        data={"model": MODEL_NAME, "language": "en", "prompt": INITIAL_PROMPT},
+        timeout=30,
     )
-    return " ".join(segment.text.strip() for segment in segments).strip()
+    response.raise_for_status()
+    return response.json()["text"].strip()
