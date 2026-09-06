@@ -13,4 +13,7 @@ peft==0.13.0
 accelerate==0.34.2
 bitsandbytes==0.44.1
 faster-whisper==1.0.3
-TTS==0.22.0
+# The original Coqui `TTS` PyPI package is unmaintained and has no build for
+# recent Python versions — using the actively-maintained fork instead, which
+# keeps the same `from TTS.api import TTS` import and API.
+coqui-tts==0.27.5
